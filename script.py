@@ -1,14 +1,17 @@
 import time
+import os
 # import RPi.GPIO as GPIO
 
 # Set up GPIO pins
-shredder_pin = 2
-stepper_pin = 3
-stirrer_pin = 4
-heater_pin = 5
-urea_pin = 6
-citric_pin = 7
-temp_pin = 8
+stirrer_pins = [2, 3] # 2 pins
+
+koh_pins = [4, 5, 6, 7] # 4 pins - stepper
+
+heater_pin = 8 # on/off
+
+solenoid_pins = [9, 10] # s
+
+temp_pin = 11 # sensor
 
 # GPIO.setmode(GPIO.BCM)
 # GPIO.setup(shredder_pin, GPIO.OUT)
@@ -24,75 +27,80 @@ HEAT_THRESHOLD_1 = 100
 HEAT_THRESHOLD_2 = 70
 
 # Define stage timers
-STAGE_1_TIMER = 60 # Run while heater, stirrer, etc. are on and sensor is at 100+C
+STAGE_1_TIMER = 6 # Run while heater, stirrer, etc. are on and sensor is at 100+C
 STAGE_1_PAUSE = 5
 
 # Define motor and output control functions
-def shredder(toggle):
-    # if (toggle): GPIO.output(shredder_pin, GPIO.HIGH)
-    # else: GPIO.output(shredder_pin, GPIO.LOW)
 
-    print("Shredder ", 'on' if toggle else 'off')
-
-def stepper(toggle):
+def koh(toggle):
     # if (toggle): GPIO.output(stepper_pin, GPIO.HIGH)
     # else: GPIO.output(stepper_pin, GPIO.LOW)
 
-    print("Stepper ", 'on' if toggle else 'off')
+    print("[GPIO] Stepper Motor\t\t-\t", '[ON]' if toggle else '[OFF]')
 
 
 def stirrer(toggle):
     # if (toggle): GPIO.output(stirrer_pin, GPIO.HIGH)
     # else: GPIO.output(stirrer_pin, GPIO.LOW)
 
-    print("Stirrer ", 'on' if toggle else 'off')
+    print("[GPIO] Stirrer DC Motor\t\t-\t", '[ON]' if toggle else '[OFF]')
+
 
 def heater(toggle):
     # if (toggle): GPIO.output(heater_pin, GPIO.HIGH)
     # else: GPIO.output(heater_pin, GPIO.LOW)
 
-    print("Heater ", 'on' if toggle else 'off')
+    print("[GPIO] Heating Element\t\t-\t", '[ON]' if toggle else '[OFF]')
 
-def urea(toggle):
+def solenoid(toggle):
     # if (toggle): GPIO.output(urea_pin, GPIO.HIGH)
     # else: GPIO.output(urea_pin, GPIO.LOW)
 
-    print("Urea Solenoid ", 'on' if toggle else 'off')
+    print("[GPIO] Solenoid for Citric + Urea Acid\t\t-\t", '[ON]' if toggle else '[OFF]')
 
-def citric(toggle):
-    # if (toggle): GPIO.output(citric_pin, GPIO.HIGH)
-    # else: GPIO.output(citric_pin, GPIO.LOW)
+def parseTemp(sensor_val):
+    parsedSensorVal = sensor_val
+    #Parsing proper
+    return parsedSensorVal
 
-    print("Citric Solenoid ", 'on' if toggle else 'off')
+def clearScreen():
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 # Define stage 1 method
 def stage_1():
+    clearScreen()
+    print ("\nStage 1")
+    print("-----------------------------------------------------------------\n")
     # Turn on motors and outputs
-    shredder(True)
-    stepper(True)
+    koh(True)
     stirrer(True)
     heater(True)
+
+    time.sleep(2)
 
     # Monitor temperature
     while True:
         # temp = GPIO.input(temp_pin)
-        temp = 60
-        print("Current temp:", temp)
+        rawTemp = 110
+        temp = parseTemp(rawTemp)
+        clearScreen()
+        print ("\nStage 1")
+        print("-----------------------------------------------------------------\n")
+        print("[GPIO] Temperature Sensor\t-\t[", temp, "deg C]")
         if temp >= HEAT_THRESHOLD_1:
-            print("Temperature reached threshold 1")
+            clearScreen()
+            print ("\nStage 1")
+            print("-----------------------------------------------------------------\n")
+            print("\nTemperature reached Stage 1 Threshold (", HEAT_THRESHOLD_1, "deg C )\n")
+            print("\nHeat-up Timer\t\t-\t",STAGE_1_TIMER,"ms...")
             time.sleep(STAGE_1_TIMER) # wait for 1 minute
-
-
             break
-        elif input("Enter X to stop: ") == 'X':
-            reset_all()
-            return
+        else: time.sleep(2)
 
-    print("1 minute lapsed")
+    print("\nHeat-up Lapsed...\nStopping motors and heating elements...\nCooling down...\n")
 
     # Turn off motors and outputs
-    shredder(False)
-    stepper(False)
+    koh(False)
     stirrer(False)
     heater(False)
 
@@ -100,54 +108,74 @@ def stage_1():
     # Check if cooled down
     while True:
         time.sleep(STAGE_1_PAUSE);
-        if input("Press Y to Continue: ") == 'Y':
+        if input("\nEnter A to Continue (cooled sufficiently?). Enter B to wait again: ") == 'A':
             break
 
     # Prompt to continue or reset
-    if input("Continue? (Y/N): ") == 'Y':
+    clearScreen()
+    print ("\nStage 1")
+    print("-----------------------------------------------------------------\n")
+    if input("Stage 1 Completed.\nProceed to Stage 2? [A] - Yes, [B] - No: ") == 'A':
         stage_2()
     else:
         main_loop()
 
 # Define stage 2 method
 def stage_2():
+    clearScreen()
+    print ("\nStage 2")
+    print("-----------------------------------------------------------------\n")
+
     # Turn on outputs
     stirrer(True)
     heater(True)
-    urea(True)
-    citric(True)
+    solenoid(True)
+
+    time.sleep(2)
 
     # Monitor temperature
     while True:
-        # temp = GPIO.input(temp_pin)
-        temp = 90
-        print("Current temp:", temp)
+        # temp = parseTemp(GPIO.input(temp_pin))
+        rawTemp = 80
+        temp = parseTemp(rawTemp)
+        clearScreen()
+        print ("\nStage 2")
+        print("-----------------------------------------------------------------\n")
+        print("[GPIO] Temperature Sensor\t-\t[", temp, "deg C]")
         if temp >= HEAT_THRESHOLD_2:
-            print("Temperature reached threshold 2")
+            clearScreen()
+            print ("\nStage 2")
+            print("-----------------------------------------------------------------\n")
+            print("\nTemperature reached Stage 2 Threshold (", HEAT_THRESHOLD_2, "deg C )\n")
             reset_all()
-            print("Process complete.")
+
+            print("\nProcess complete.\nReturning to main menu...")
+            time.sleep(2)
             main_loop()
-        elif input("Enter X to stop: ") == 'X':
+        elif input("\nEnter B to stop: ") == 'B':
             reset_all()
             return
 
 # Define reset function
 def reset_all():
-    shredder(False)
-    stepper(False)
+    koh(False)
     stirrer(False)
     heater(False)
-    urea(False)
-    citric(False)
+    solenoid(False)
 
 # Define main loop method
 def main_loop():
     while True:
-        choice = input("Press S to start or Q to quit: ")
-        if choice.upper() == "Q":
+        clearScreen()
+        print("-----------------------------------------------------------------")
+        print ("\t\t\tMain Program Loop")
+        print("-----------------------------------------------------------------\n")
+        print("\nNOTE: You can close the program anytime with Ctrl+X.\nMotors and Sensors may not close properly.\n")
+        choice = input("\nPress A to start. B to quit: ")
+        if choice.upper() == "B":
             # GPIO.cleanup()
-            break;
-        elif choice.upper() == "S":
+            quit()
+        elif choice.upper() == "A":
             stage_1()
 
 if __name__ == "__main__":
