@@ -1,59 +1,93 @@
-import RPi.GPIO as GPIO
 import time
-GPIO.setmode(GPIO.BOARD)
-GPIO.setwarnings(False)
+class MAX6675:
+    MEASUREMENT_PERIOD_MS = 220
 
-# set pin number for communicate with MAX6675
-def set_pin (CS, SCK, SO, UNIT):
-    global sck
-    sck= SCK
-    global so
-    so = SO
-    global unit
-    unit = UNIT
-    
-    GPIO.setup(CS, GPIO.OUT, initial = GPIO.HIGH)
-    GPIO.setup(SCK, GPIO.OUT, initial = GPIO.LOW)
-    GPIO.setup(SO, GPIO.IN)
+    def __init__(self, sck, cs, so):
+        """
+        Creates new object for controlling MAX6675
+        :param sck: SCK (clock) pin, must be configured as Pin.OUT
+        :param cs: CS (select) pin, must be configured as Pin.OUT
+        :param so: SO (data) pin, must be configured as Pin.IN
+        """
+        # Thermocouple
+        self._sck = sck
+        self._sck.low()
 
-def read_temp(cs_no):
-    
-    GPIO.output(cs_no, GPIO.LOW)
-    time.sleep(0.002)
-    GPIO.output(cs_no, GPIO.HIGH)
-    time.sleep(0.22)
+        self._cs = cs
+        self._cs.high()
 
-    GPIO.output(cs_no, GPIO.LOW)
-    GPIO.output(sck, GPIO.HIGH)
-    time.sleep(0.001)
-    GPIO.output(sck, GPIO.LOW)
-    Value = 0
-    for i in range(11, -1, -1):
-        GPIO.output(sck, GPIO.HIGH)
-        Value = Value + (GPIO.input(so) * (2 ** i))
-        GPIO.output(sck, GPIO.LOW)
+        self._so = so
+        self._so.low()
 
-    GPIO.output(sck, GPIO.HIGH)
-    error_tc = GPIO.input(so)
-    GPIO.output(sck, GPIO.LOW)
+        self._last_measurement_start = 0
+        self._last_read_temp = 0
+        self._error = 0
 
-    for i in range(2):
-        GPIO.output(sck, GPIO.HIGH)
-        time.sleep(0.001)
-        GPIO.output(sck, GPIO.LOW)
+    def _cycle_sck(self):
+        self._sck.high()
+        time.sleep_us(1)
+        self._sck.low()
+        time.sleep_us(1)
 
-    GPIO.output(cs_no, GPIO.HIGH)
+    def refresh(self):
+        """
+        Start a new measurement.
+        """
+        self._cs.low()
+        time.sleep_us(10)
+        self._cs.high()
+        self._last_measurement_start = time.ticks_ms()
 
-    if unit == 0:
-        temp = Value
-    if unit == 1:
-        temp = Value * 0.25
-    if unit == 2:
-        temp = Value * 0.25 * 9.0 / 5.0 + 32.0
+    def ready(self):
+        """
+        Signals if measurement is finished.
+        :return: True if measurement is ready for reading.
+        """
+        return time.ticks_ms() - self._last_measurement_start > MAX6675.MEASUREMENT_PERIOD_MS
 
-    if error_tc != 0:
-        return -cs_no
-    else:
-        return temp
+    def error(self):
+        """
+        Returns error bit of last reading. If this bit is set (=1), there's problem with the
+        thermocouple - it can be damaged or loosely connected
+        :return: Error bit value
+        """
+        return self._error
 
-GPIO.cleanup()
+    def read(self):
+        """
+        Reads last measurement and starts a new one. If new measurement is not ready yet, returns last value.
+        Note: The last measurement can be quite old (e.g. since last call to `read`).
+        To refresh measurement, call `refresh` and wait for `ready` to become True before reading.
+        :return: Measured temperature
+        """
+        # Check if new reading is available
+        if self.ready():
+            # Bring CS pin low to start protocol for reading result of
+            # the conversion process. Forcing the pin down outputs
+            # first (dummy) sign bit 15.
+            self._cs.low()
+            time.sleep_us(10)
+
+            # Read temperature bits 14-3 from MAX6675.
+            value = 0
+            for i in range(12):
+                # SCK should resemble clock signal and new SO value
+                # is presented at falling edge
+                self._cycle_sck()
+                value += self._so.value() << (11 - i)
+
+            # Read the TC Input pin to check if the input is open
+            self._cycle_sck()
+            self._error = self._so.value()
+
+            # Read the last two bits to complete protocol
+            for i in range(2):
+                self._cycle_sck()
+
+            # Finish protocol and start new measurement
+            self._cs.high()
+            self._last_measurement_start = time.ticks_ms()
+
+            self._last_read_temp = value * 0.25
+
+        return self._last_read_temp
