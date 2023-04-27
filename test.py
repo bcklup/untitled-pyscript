@@ -2,22 +2,25 @@ import time
 import os
 import RPi.GPIO as GPIO
 
-# Set up GPIO pins
-stirrer_pins = [2, 3] # 2 pins
+from max6675 import MAX6675
 
-koh_pins = [4, 5, 6, 7] # 4 pins - stepper
+cs = 22
+sck = 18
+so = 16
 
-heater_pin = 8 # on/off
-
-solenoid_pins = [9, 10] # s
-
-temp_pin = 11 # sensor
+MAX6675.set_pin(cs, sck, so, 1)
 
 def main():
   while True:
-    temp = GPIO.input(temp_pin)
-    print("TEMP OUTPUT: \t", temp)
-    time.sleep(2)
+    a = MAX6675.read_temp(cs)
+
+    # print temperature
+    print("TEMP OUTPUT: \t", a)
+
+    # when there are some errors with sensor, it return "-" sign and CS pin number
+    # in this case it returns "-22" 
+    
+    MAX6675.time.sleep(2)
 
 def main_loop():
     while True:

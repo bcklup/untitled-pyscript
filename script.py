@@ -27,6 +27,7 @@ HEAT_THRESHOLD_1 = 100
 HEAT_THRESHOLD_2 = 70
 
 LOOP_INTERVALS = 1
+SOLENOID_TIMER = 1
 
 # Define stage timers
 STAGE_1_TIMER = 6 # Run while heater, stirrer, etc. are on and sensor is at 100+C
@@ -134,7 +135,8 @@ def stage_2():
     heater(True)
     solenoid(True)
 
-    # time.sleep(2)
+    time.sleep(SOLENOID_TIMER) #TODO: How long before turning off solenoid relay
+    solenoid(False)
 
     # Monitor temperature
     while True:
