@@ -2,17 +2,17 @@ import time
 import os
 import RPi.GPIO as GPIO
 
-from max6675 import MAX6675
+from max6675 import max6675
 
 cs = 17
 sck = 27
 so = 22
 
-MAX6675.set_pin(cs, sck, so, 1)
+max6675.set_pin(cs, sck, so, 1)
 
 def main():
   while True:
-    a = MAX6675.read_temp(cs)
+    a = max6675.read_temp(cs)
 
     # print temperature
     print("TEMP OUTPUT: \t", a)
@@ -20,7 +20,7 @@ def main():
     # when there are some errors with sensor, it return "-" sign and CS pin number
     # in this case it returns "-22" 
     
-    MAX6675.time.sleep(2)
+    max6675.time.sleep(2)
 
 def main_loop():
     while True:
