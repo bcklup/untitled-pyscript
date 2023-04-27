@@ -4,9 +4,9 @@ import RPi.GPIO as GPIO
 
 from max6675 import MAX6675
 
-cs = 22
-sck = 18
-so = 16
+cs = 17
+sck = 27
+so = 22
 
 MAX6675.set_pin(cs, sck, so, 1)
 
