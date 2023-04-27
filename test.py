@@ -9,7 +9,7 @@ sck = 18
 so = 16
 
 # max6675.set_pin(CS, SCK, SO, unit)   [unit : 0 - raw, 1 - Celsius, 2 - Fahrenheit]
-max6675.set_pin(cs, sck, so, 1)
+max6675.set_pin(cs, sck, so, 0)
 
 def main():
   while True:
