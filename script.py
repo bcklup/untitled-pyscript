@@ -26,6 +26,8 @@ temp_pin = 11 # sensor
 HEAT_THRESHOLD_1 = 100
 HEAT_THRESHOLD_2 = 70
 
+LOOP_INTERVALS = 1
+
 # Define stage timers
 STAGE_1_TIMER = 6 # Run while heater, stirrer, etc. are on and sensor is at 100+C
 STAGE_1_PAUSE = 5
@@ -76,7 +78,8 @@ def stage_1():
     stirrer(True)
     heater(True)
 
-    time.sleep(2)
+    # time.sleep(2)
+
 
     # Monitor temperature
     while True:
@@ -95,7 +98,7 @@ def stage_1():
             print("\nHeat-up Timer\t\t-\t",STAGE_1_TIMER,"ms...")
             time.sleep(STAGE_1_TIMER) # wait for 1 minute
             break
-        else: time.sleep(2)
+        else: time.sleep(LOOP_INTERVALS)
 
     print("\nHeat-up Lapsed...\nStopping motors and heating elements...\nCooling down...\n")
 
@@ -131,7 +134,7 @@ def stage_2():
     heater(True)
     solenoid(True)
 
-    time.sleep(2)
+    # time.sleep(2)
 
     # Monitor temperature
     while True:
@@ -152,9 +155,11 @@ def stage_2():
             print("\nProcess complete.\nReturning to main menu...")
             time.sleep(2)
             main_loop()
-        elif input("\nEnter B to stop: ") == 'B':
-            reset_all()
-            return
+        # elif input("\nEnter B to stop: ") == 'B':
+        #     reset_all()
+        #     return
+        else: time.sleep(LOOP_INTERVALS)
+
 
 # Define reset function
 def reset_all():

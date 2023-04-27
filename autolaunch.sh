@@ -1,6 +1,5 @@
 #!/bin/bash
 # Wait for desktop environment to start
-sleep 10
 
 # Set terminal size
 TERMINAL_WIDTH=120
