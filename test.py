@@ -2,7 +2,7 @@ import time
 import os
 import RPi.GPIO as GPIO
 
-from max6675 import max6675
+import max6675
 
 cs = 17
 sck = 27
