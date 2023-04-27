@@ -1,7 +1,6 @@
 import time
 import os
-from machine import Pin
-from max6675 import MAX6675
+import RPi.GPIO as GPIO
 
 import max6675
 
@@ -9,15 +8,12 @@ cs = 22
 sck = 18
 so = 16
 
-soPIN = Pin(cs, Pin.IN)
-sckPIN = Pin(sck, Pin.OUT)
-csPIN = Pin(cs, Pin.OUT)
-
-max = MAX6675(sckPIN, csPIN , soPIN)
+# max6675.set_pin(CS, SCK, SO, unit)   [unit : 0 - raw, 1 - Celsius, 2 - Fahrenheit]
+max6675.set_pin(cs, sck, so, 1)
 
 def main():
   while True:
-    a = max.read()
+    a = max6675.read_temp(cs)
 
     # print temperature
     print("TEMP OUTPUT: \t", a)
