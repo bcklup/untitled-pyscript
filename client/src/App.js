@@ -42,6 +42,30 @@ function App() {
           logger(data.log);
         });
 
+        ioSocket.on("ready", () => {
+          setState(STATES.READY);
+        });
+
+        ioSocket.on("restart", () => {
+          handleRestart();
+        });
+
+        ioSocket.on("stage1_start", () => {
+          setState(STATES.STAGE1);
+        });
+
+        ioSocket.on("stage1_prompt_cooling", () => {
+          setState(STATES.STAGE1_PAUSE);
+        });
+
+        ioSocket.on("stage2_prompt_trigger", () => {
+          setState(STATES.STAGE1_PROMPT);
+        });
+
+        ioSocket.on("stage2_start", () => {
+          setState(STATES.STAGE2);
+        });
+
         setSocket(ioSocket);
       } else {
         ioSocket.disconnect();
@@ -60,22 +84,43 @@ function App() {
   }, []);
 
   const handleFullStop = useCallback(() => {
-    // socket.emit("turn_on_relays");
-  }, []);
+    socket.emit("abort");
+  }, [socket]);
 
-  const handleStartStage1 = useCallback((answer) => () => {}, []);
+  const handleStartStage1 = useCallback(() => {
+    socket.emit("stage1_trigger");
+  }, [socket]);
 
-  const handleContinueStage1 = useCallback((answer) => () => {}, []);
+  const handleContinueStage1 = useCallback(
+    (answer) => () => {
+      if (answer) {
+        socket.emit("stage1_response_cooling", true);
+      } else {
+        socket.emit("stage1_response_cooling", false);
+      }
+    },
+    [socket]
+  );
 
-  const handleStartStage2 = useCallback((answer) => () => {}, []);
-
-  const handleRestart = useCallback(() => {
-    handleClearLogs();
-  }, []);
+  const handleStartStage2 = useCallback(
+    (answer) => () => {
+      if (answer) {
+        socket.emit("stage2_response_trigger", true);
+      } else {
+        socket.emit("stage2_response_trigger", false);
+      }
+    },
+    [socket]
+  );
 
   const handleClearLogs = useCallback(() => {
     setLogs("");
   }, [setLogs]);
+
+  const handleRestart = useCallback(() => {
+    handleClearLogs();
+    setState(STATES.SETUP);
+  }, [handleClearLogs]);
 
   return (
     <div className="bg-zinc-500 h-screen w-full items-center justify-center flex flex-1">
@@ -140,15 +185,9 @@ function App() {
               <div className="flex flex-row space-x-4">
                 <button
                   className="font-bold text-white bg-green-400 px-5 py-1 rounded-sm"
-                  onClick={handleStartStage1(true)}
+                  onClick={handleStartStage1}
                 >
-                  Yes
-                </button>
-                <button
-                  className="font-bold text-white bg-red-400 px-6 py-2 rounded-sm"
-                  onClick={handleStartStage1(false)}
-                >
-                  No
+                  Start
                 </button>
               </div>
             </div>
