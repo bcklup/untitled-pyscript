@@ -1,9 +1,12 @@
 #!/bin/bash
-# Wait for desktop environment to start
 
-# Set terminal size
-TERMINAL_WIDTH=120
-TERMINAL_HEIGHT=34
+# Start the Python server
+lxterminal -t "Python Server" -e "bash -c 'python3 script.py; $SHELL'"
 
-# Launch terminal with Python script
-x-terminal-emulator -e "bash -c 'cd ~/ && python script.py; exec bash'" --geometry=$TERMINAL_WIDTH"x"$TERMINAL_HEIGHT"+0+0 --fullscreen
+# Wait for the server to start up
+sleep 2
+
+# Keep the script running to keep the terminal window open
+while true; do
+    sleep 1
+done
