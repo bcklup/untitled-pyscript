@@ -5,6 +5,7 @@ import eventlet
 import datetime
 import max6675
 from flask import Flask, send_from_directory
+from flask_cors import CORS
 
 #-----------------------CONFIG VARIABLES---------------------
 # Relay Pins
@@ -37,6 +38,7 @@ GPIO.setwarnings(False)
 # Create a socket.io server instance
 sio = socketio.Server()
 app = Flask(__name__)
+CORS(app)
 app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
 
 lock = False
@@ -45,9 +47,9 @@ temp_value = 34
 def log(text):
     print(text)
     try:
-      sio.emit('log', '[{0}]{1}'.format(datetime.datetime.now(), text))
+      sio.emit('log', '[{0}]{1}'.format(datetime.datetime.now().strftime("%H:%M:%S %p"), text))
     except:
-        print('[{0}] {1}'.format(datetime.datetime.now(), text))
+        print('{1}'.format(text))
 
 # Define event handlers for socket.io events
 @sio.on('connect')
@@ -173,7 +175,7 @@ def stage1_response_cooling(answer):
     else:
       log('[ERR] Another operation is in progress.')
        
-@sio.on('stage2_response_cooling')
+@sio.on('stage2_response_trigger')
 def stage2_response_trigger(answer):
     global lock
     if not lock:
