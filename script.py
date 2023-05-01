@@ -238,6 +238,10 @@ def stage2_response_trigger(answer):
 def serve_client():
   return send_from_directory('client/build', 'index.html')
 
+@app.route('/favicon.ico')
+def serve_icon():
+  return send_from_directory('client/build', 'favicon.ico')
+
 @app.route('/static/<path:path>')
 def serve_static(path):
   return send_from_directory('client/build/static', path)
