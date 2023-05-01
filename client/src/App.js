@@ -29,8 +29,7 @@ function App() {
 
   useEffect(() => {
     try {
-      const hostIP = window.location.hostname;
-      console.log("[Log] hostIP", { hostIP });
+      const hostIP = window.location.hostname.toString();
       const ioSocket = io.connect(`ws:${hostIP}:5000`);
 
       if (ioSocket.connected) {
