@@ -1,8 +1,7 @@
 #!/bin/bash
 
 # Start the Python server
-cd ~/untitled-pyscript
-lxterminal -t "Python Server" -e "bash -c 'python3 script.py; $SHELL'"
+lxterminal -t "Python Server" -e "bash -c 'python3 ~/untitled-pyscript/script.py; $SHELL'"
 
 # Wait for the server to start up
 sleep 2
