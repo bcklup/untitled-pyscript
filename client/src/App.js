@@ -28,9 +28,19 @@ function App() {
   );
 
   useEffect(() => {
+    connect();
+    return () => {
+      if (socket) socket.disconnect();
+    };
+  }, []);
+
+  const connect = () => {
     try {
       const hostIP = window.location.hostname.toString();
       const ioSocket = io.connect(`ws:${hostIP}:5000`);
+      logger(
+        `[CLIENT] Establishing connection to socket server (ws:${hostIP}:5000)`
+      );
 
       if (ioSocket.connected) {
         ioSocket.on("temp", (data) => {
@@ -77,9 +87,12 @@ function App() {
       if (socket) socket.disconnect();
       console.log(e);
     }
-    return () => {
-      if (socket) socket.disconnect();
-    };
+  };
+
+  const handleReconnect = useCallback(() => {
+    setState(STATES.SETUP);
+    logger("[CLIENT] Reconnecting to socket server...");
+    connect();
   }, []);
 
   const handleFullStop = useCallback(() => {
@@ -127,14 +140,16 @@ function App() {
         <div className="flex flex-row w-full p-3 bg-slate-700 items-center justify-between">
           <p className="font-light text-white">
             Connection:{" "}
-            <span
-              className={twMerge(
-                "font-semibold",
-                socket !== null ? "text-emerald-400" : "text-red-400"
-              )}
-            >
-              {socket !== null ? "Active" : "Inactive"}
-            </span>
+            {socket !== null ? (
+              <span className="font-semibold text-emerald-400">Active</span>
+            ) : (
+              <button
+                className="font-semibold text-red-400"
+                onClick={handleReconnect}
+              >
+                Inactive
+              </button>
+            )}
           </p>
           <p className="font-light text-white">
             Host IP:{" "}
