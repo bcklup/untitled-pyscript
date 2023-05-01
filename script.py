@@ -103,15 +103,10 @@ def disconnect(sid):
 
 @sio.on('abort')
 def abort(data):
-  global lock
-  if not lock:
-    lock = True
-    log('[OP] Aborting system.. GPIO cleanup and restart')
-    time.sleep(1)
-    lock = False
-    restart()
-  else:
-      log('[ERR] Another operation is in progress.')
+  log('[OP] Aborting system.. GPIO cleanup and restart')
+  time.sleep(1)
+  lock = False
+  restart()
 
 def restart():
   global lock
