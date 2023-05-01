@@ -20,7 +20,6 @@ function App() {
   const logger = useCallback(
     (text) => {
       setLogs((prevLogs) => `${prevLogs}\n${text}`);
-      console.log("[Log] logRel", { logRef });
       if (logRef && logRef.current) {
         logRef.current.scrollTop = logRef.current?.scrollHeight;
       }
@@ -31,7 +30,7 @@ function App() {
   useEffect(() => {
     const hostIP = window.location.hostname;
     try {
-      const ioSocket = io.connect(`http://${hostIP}:5000`);
+      const ioSocket = io.connect(`ws:${hostIP}:5000`);
 
       if (ioSocket.connected) {
         ioSocket.on("temp", (data) => {
