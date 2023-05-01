@@ -238,9 +238,9 @@ def stage2_response_trigger(answer):
 def serve_client():
   return send_from_directory('client/build', 'index.html')
 
-@app.route('/static/<path:path>')
+@app.route('/<path:path>')
 def serve_static(path):
-  return send_from_directory('client/build/static', path)
+  return send_from_directory('client/build/', path)
 
 
 # Start the server
