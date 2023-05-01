@@ -34,7 +34,7 @@ function App() {
   const connect = () => {
     try {
       const hostIP = window.location.hostname.toString();
-      const ioSocket = io.connect(`${hostIP}:5001`);
+      const ioSocket = io.connect(`${hostIP}:5000`);
 
       ioSocket.on("connect", (data) => {
         setSocket(ioSocket);
