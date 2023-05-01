@@ -151,7 +151,7 @@ def stage1_trigger(sid):
           time.sleep(STAGE_1_TIMER) # wait for 1 minute
           break
       else:
-          time.sleep(LOOP_INTERVALS)
+          max6675.time.sleep(LOOP_INTERVALS)
 
     log('[STAGE 1] Heating and blending complete.')
   
@@ -217,10 +217,10 @@ def stage2_response_trigger(sid, answer):
         sio.start_background_task(sio.emit('temp', temp_value))
 
         if temp_value >= HEAT_THRESHOLD_2:
-            log("[STAGE 2] Temperature reached Stage 2 threshold.")
-            break
+          log("[STAGE 2] Temperature reached Stage 2 threshold.")
+          break
         else:
-          time.sleep(LOOP_INTERVALS)
+          max6675.time.sleep(LOOP_INTERVALS)
 
       GPIO.output(heater_pin, GPIO.HIGH)
       log('[GPIO] Heater OFF')
