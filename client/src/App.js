@@ -17,15 +17,12 @@ function App() {
   const [socket, setSocket] = useState(null);
   const logRef = useRef(null);
 
-  const logger = useCallback(
-    (text) => {
-      setLogs((prevLogs) => `${prevLogs}\n${text}`);
-      if (logRef && logRef.current) {
-        logRef.current.scrollTop = logRef.current?.scrollHeight;
-      }
-    },
-    [setLogs, logRef]
-  );
+  const logger = (text) => {
+    setLogs((prevLogs) => `${prevLogs}\n${text}`);
+    if (logRef && logRef.current) {
+      logRef.current.scrollTop = logRef.current?.scrollHeight;
+    }
+  };
 
   useEffect(() => {
     connect();
@@ -37,49 +34,52 @@ function App() {
   const connect = () => {
     try {
       const hostIP = window.location.hostname.toString();
-      const ioSocket = io.connect(`ws:${hostIP}:5000`);
+      const ioSocket = io.connect(`${hostIP}:5001`);
+
+      ioSocket.on("connect", (data) => {
+        setSocket(ioSocket);
+      });
+
+      ioSocket.on("disconnect", (data) => {
+        setSocket(null);
+        setState(STATES.SETUP);
+      });
+
       logger(
-        `[CLIENT] Establishing connection to socket server (ws:${hostIP}:5000)`
+        `[CLIENT] Establishing connection to socket server (ws:${hostIP}:5001)`
       );
 
-      if (ioSocket.connected) {
-        ioSocket.on("temp", (data) => {
-          setTemperatureValue(data.temp);
-        });
+      ioSocket.on("temp", (data) => {
+        setTemperatureValue(data);
+      });
 
-        ioSocket.on("log", (data) => {
-          logger(data.log);
-        });
+      ioSocket.on("log", (data) => {
+        logger(data);
+      });
 
-        ioSocket.on("ready", () => {
-          setState(STATES.READY);
-        });
+      ioSocket.on("ready", () => {
+        setState(STATES.READY);
+      });
 
-        ioSocket.on("restart", () => {
-          handleRestart();
-        });
+      ioSocket.on("restart", () => {
+        handleRestart();
+      });
 
-        ioSocket.on("stage1_start", () => {
-          setState(STATES.STAGE1);
-        });
+      ioSocket.on("stage1_start", () => {
+        setState(STATES.STAGE1);
+      });
 
-        ioSocket.on("stage1_prompt_cooling", () => {
-          setState(STATES.STAGE1_PAUSE);
-        });
+      ioSocket.on("stage1_prompt_cooling", () => {
+        setState(STATES.STAGE1_PAUSE);
+      });
 
-        ioSocket.on("stage2_prompt_trigger", () => {
-          setState(STATES.STAGE1_PROMPT);
-        });
+      ioSocket.on("stage2_prompt_trigger", () => {
+        setState(STATES.STAGE1_PROMPT);
+      });
 
-        ioSocket.on("stage2_start", () => {
-          setState(STATES.STAGE2);
-        });
-
-        setSocket(ioSocket);
-      } else {
-        ioSocket.disconnect();
-        throw new Error();
-      }
+      ioSocket.on("stage2_start", () => {
+        setState(STATES.STAGE2);
+      });
     } catch (e) {
       logger(
         `[${new Date().toLocaleTimeString()}][ERR] Error establishing connection...`
@@ -131,11 +131,11 @@ function App() {
 
   const handleRestart = useCallback(() => {
     handleClearLogs();
-    setState(STATES.SETUP);
+    setState(STATES.READY);
   }, [handleClearLogs]);
 
   return (
-    <div className="bg-zinc-500 h-screen w-full items-center justify-center flex flex-1">
+    <div className="flex h-auto min-h-screen flex-1 flex-col items-center justify-center bg-zinc-500">
       <div className="flex flex-col bg-white shadow-lg h-full w-11/12 md:w-[768px]">
         <div className="flex flex-row w-full p-3 bg-slate-700 items-center justify-between">
           <p className="font-light text-white">
@@ -174,7 +174,7 @@ function App() {
         {/* <button onClick={handleTurnOnRelays}>Turn On Relays</button>
       <button onClick={handleTurnOffRelays}>Turn Off Relays</button> */}
         <div className="flex flex-1 flex-col text-left items-left m-5">
-          <div className="mt-3 md:mt-24">
+          <div className="mt-3">
             <div className="flex flex-row justify-between items-end mb-2">
               <p>Program Log</p>
               <button
@@ -219,25 +219,6 @@ function App() {
                 <button
                   className="font-bold text-white bg-red-400 px-6 py-2 rounded-sm"
                   onClick={handleContinueStage1(false)}
-                >
-                  No
-                </button>
-              </div>
-            </div>
-          )}
-          {state === STATES.STAGE1_PROMPT && (
-            <div className="flex flex-row w-full items-center justify-between bg-neutral-100 px-6 py-6">
-              <p className="text-xl">Start Stage 2?</p>
-              <div className="flex flex-row space-x-4">
-                <button
-                  className="font-bold text-white bg-green-400 px-5 py-1 rounded-sm"
-                  onClick={handleStartStage2(true)}
-                >
-                  Yes
-                </button>
-                <button
-                  className="font-bold text-white bg-red-400 px-6 py-2 rounded-sm"
-                  onClick={handleStartStage2(false)}
                 >
                   No
                 </button>

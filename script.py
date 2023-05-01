@@ -2,10 +2,12 @@ import RPi.GPIO as GPIO
 import time
 import socketio
 import eventlet
+from eventlet.green import threading
+
 import datetime
 import max6675
 from flask import Flask, send_from_directory
-from flask_cors import CORS
+# from flask_cors import CORS
 
 #-----------------------CONFIG VARIABLES---------------------
 # Relay Pins
@@ -23,7 +25,7 @@ HEAT_THRESHOLD_1 = 100
 HEAT_THRESHOLD_2 = 70
 
 # Timer Variables
-LOOP_INTERVALS = 1
+LOOP_INTERVALS = 2
 SOLENOID_TIMER = 1 # Interval between solenoid on->off
 STAGE_1_TIMER = 6 # Run while heater, stirrer, etc. are on and sensor is at 100+C
 STAGE_1_PAUSE = 5
@@ -36,9 +38,10 @@ GPIO.setwarnings(False)
 
 
 # Create a socket.io server instance
-sio = socketio.Server()
+sio = socketio.Server(cors_allowed_origins='*')
+
 app = Flask(__name__)
-CORS(app)
+# CORS(app)
 app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
 
 lock = False
@@ -47,7 +50,7 @@ temp_value = 34
 def log(text):
   print(text)
   try:
-    sio.emit('log', '[{0}]{1}'.format(datetime.datetime.now().strftime("%H:%M:%S %p"), text))
+    sio.start_background_task(sio.emit('log', '[{0}]{1}'.format(datetime.datetime.now().strftime("%H:%M:%S %p"), text)))
   except:
       print('{1}'.format(text))
 
@@ -72,25 +75,26 @@ def connect(sid, environ):
     except:
       log('[GPIO][ERR] GPIO Set up FAILED. Please check all GPIO connections')
 
-    # Start the temperature sensing loop
-    def temperature_update():
-        log('[BG] Background Task \'temperature_update\' Started.')
-        while True:
-            global temp_value
-            temp_value = max6675.read_temp(temp_cs)
-
-            # Emit the temperature value to the connected client
-            sio.emit('temp', temp_value)
-
-            max6675.time.sleep(2)
-
-    sio.start_background_task(temperature_update)
+    # sio.start_background_task(temperature_update)
+    # eventlet.spawn(temperature_update)
 
     log('[OP] System is ready. Start Stage 1?')
     lock = False
-    sio.emit('ready')
+    sio.start_background_task(sio.emit('ready'))
   else:
       log('[ERR] Another operation is in progress.')
+
+def temperature_update():
+  log('[BG] Background Task \'temperature_update\' Started.')
+  while True:
+      global temp_value
+      temp_value = max6675.read_temp(temp_cs)
+
+      # Emit the temperature value to the connected client
+      sio.emit('temp', temp_value)
+
+      max6675.time.sleep(2)
+      time.sleep(2)
 
 @sio.on('disconnect')
 def disconnect(sid):
@@ -98,7 +102,7 @@ def disconnect(sid):
   GPIO.cleanup()
 
 @sio.on('abort')
-def abort():
+def abort(data):
   global lock
   if not lock:
     lock = True
@@ -128,11 +132,11 @@ def restart():
 
 
 @sio.on('stage1_trigger')
-def stage1_trigger():
+def stage1_trigger(sid):
   global lock
   if not lock:
     lock = True
-    sio.emit('stage1_start')
+    sio.start_background_task(sio.emit('stage1_start'))
     log('---------------------------------------')
     log('[STAGE 1 Stage 1 Starting...')
     log('[GPIO] Stirrer ON')
@@ -145,6 +149,7 @@ def stage1_trigger():
     while True:
       global temp_value
       temp_value = max6675.read_temp(temp_cs)
+      sio.start_background_task(sio.emit('temp', temp_value))
       if temp_value >= HEAT_THRESHOLD_1:
           log("[STAGE 1] Temperature reached Stage 1 threshold.")
           log("[STAGE 1] Continuing for another {0} seconds...".format(STAGE_1_TIMER))
@@ -170,12 +175,15 @@ def stage1_trigger():
     log('[ERR] Another operation is in progress.')
 
 @sio.on('stage1_response_cooling')
-def stage1_response_cooling(answer):
+def stage1_response_cooling(sid, answer):
   global lock
   if not lock:
     lock = True
     if answer is True:
+      sio.start_background_task(sio.emit('stage1_start'))
       log('[STAGE 1] Cooling down...')
+      time.sleep(STAGE_1_PAUSE)
+
       log('[PROMPT] Continue? (Has it cooled sufficiently?)')
       lock = False
       sio.emit('stage1_prompt_cooling')
@@ -188,12 +196,12 @@ def stage1_response_cooling(answer):
     log('[ERR] Another operation is in progress.')
        
 @sio.on('stage2_response_trigger')
-def stage2_response_trigger(answer):
+def stage2_response_trigger(sid, answer):
   global lock
   if not lock:
     lock = True
     if answer is True:
-      sio.emit('stage2_start')
+      sio.start_background_task(sio.emit('stage2_start'))
       log('---------------------------------------')
       log('[STAGE 2] Stage 2 Starting...')
       log('[GPIO] Stirrer ON')
@@ -211,6 +219,8 @@ def stage2_response_trigger(answer):
       while True:
         global temp_value
         temp_value = max6675.read_temp(temp_cs)
+        sio.start_background_task(sio.emit('temp', temp_value))
+
         if temp_value >= HEAT_THRESHOLD_2:
             log("[STAGE 2] Temperature reached Stage 2 threshold.")
             break
@@ -257,4 +267,7 @@ def serve_css(path):
 
 # Start the server
 if __name__ == '__main__':
+    # eventlet.spawn(temperature_update)
+    # wsgi_server_greenlet = eventlet.spawn(temperature_update)
+
     eventlet.wsgi.server(eventlet.listen(('', 5000)), app)
