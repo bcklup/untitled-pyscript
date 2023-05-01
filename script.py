@@ -242,7 +242,7 @@ def serve_client():
 def serve_static(path):
   return send_from_directory('client/build/static', path)
 
-@app.route('static/js/<path:path>')
+@app.route('/static/js/<path:path>')
 def serve_js(path):
   return send_from_directory('client/build/static/js', path)
 
