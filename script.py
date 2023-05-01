@@ -238,9 +238,17 @@ def stage2_response_trigger(answer):
 def serve_client():
   return send_from_directory('client/build', 'index.html')
 
-@app.route('/<path:path>')
+@app.route('/static/<path:path>')
 def serve_static(path):
-  return send_from_directory('client/build', path)
+  return send_from_directory('client/build/static', path)
+
+@app.route('static/js/<path:path>')
+def serve_js(path):
+  return send_from_directory('client/build/static/js', path)
+
+@app.route('/static/css/<path:path>')
+def serve_css(path):
+  return send_from_directory('client/build/static/css', path)
 
 
 # Start the server
