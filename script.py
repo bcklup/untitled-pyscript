@@ -89,7 +89,7 @@ def connect(sid, environ):
     sio.start_background_task(temperature_update)
     # eventlet.spawn(temperature_update)
 
-    log('[OP] System is ready. Start Stage 1?')
+    log('[OP] System is ready. Start Stage 1 or 2?')
     lock = False
     sio.start_background_task(sio.emit('ready'))
   else:

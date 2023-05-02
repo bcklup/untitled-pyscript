@@ -195,13 +195,19 @@ function App() {
           </div>
           {state === STATES.READY && (
             <div className="flex flex-row w-full items-center justify-between bg-neutral-100 px-6 py-6">
-              <p className="text-xl">Start Stage 1?</p>
+              <p className="text-xl">Start</p>
               <div className="flex flex-row space-x-4">
                 <button
                   className="font-bold text-white bg-green-400 px-5 py-1 rounded-sm"
                   onClick={handleStartStage1}
                 >
-                  Start
+                  Stage 1
+                </button>
+                <button
+                  className="font-bold text-white bg-green-400 px-6 py-2 rounded-sm"
+                  onClick={handleStartStage2(true)}
+                >
+                  Stage 2
                 </button>
               </div>
             </div>
