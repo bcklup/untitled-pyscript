@@ -75,7 +75,18 @@ def connect(sid, environ):
     except:
       log('[GPIO][ERR] GPIO Set up FAILED. Please check all GPIO connections')
 
-    # sio.start_background_task(temperature_update)
+    def temperature_update():
+      log('[BG] Background Task \'temperature_update\' Started.')
+      while True:
+        global temp_value
+        temp_value = max6675.read_temp(temp_cs)
+
+        # Emit the temperature value to the connected client
+        sio.start_background_task(sio.emit('temp', temp_value))
+
+        max6675.time.sleep(2)
+
+    sio.start_background_task(temperature_update)
     # eventlet.spawn(temperature_update)
 
     log('[OP] System is ready. Start Stage 1?')
