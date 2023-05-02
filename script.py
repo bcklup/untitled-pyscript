@@ -95,17 +95,6 @@ def connect(sid, environ):
   else:
       log('[ERR] Another operation is in progress.')
 
-def temperature_update():
-  log('[BG] Background Task \'temperature_update\' Started.')
-  while True:
-      global temp_value
-      temp_value = max6675.read_temp(temp_cs)
-
-      # Emit the temperature value to the connected client
-      sio.emit('temp', temp_value)
-
-      max6675.time.sleep(2)
-      time.sleep(2)
 
 @sio.on('disconnect')
 def disconnect(sid):
@@ -155,14 +144,15 @@ def stage1_trigger(sid):
     while True:
       global temp_value
       temp_value = max6675.read_temp(temp_cs)
-      sio.start_background_task(sio.emit('temp', temp_value))
+      # sio.start_background_task(sio.emit('temp', temp_value))
       if temp_value >= HEAT_THRESHOLD_1:
           log("[STAGE 1] Temperature reached Stage 1 threshold.")
           log("[STAGE 1] Continuing for another {0} seconds...".format(STAGE_1_TIMER))
           time.sleep(STAGE_1_TIMER) # wait for 1 minute
           break
       else:
-          max6675.time.sleep(LOOP_INTERVALS)
+          # max6675.time.sleep(LOOP_INTERVALS)
+          time.sleep(2)
 
     log('[STAGE 1] Heating and blending complete.')
   
@@ -224,14 +214,14 @@ def stage2_response_trigger(sid, answer):
 
       while True:
         global temp_value
-        temp_value = max6675.read_temp(temp_cs)
-        sio.start_background_task(sio.emit('temp', temp_value))
+        # temp_value = max6675.read_temp(temp_cs)
+        # sio.start_background_task(sio.emit('temp', temp_value))
 
         if temp_value >= HEAT_THRESHOLD_2:
           log("[STAGE 2] Temperature reached Stage 2 threshold.")
           break
         else:
-          max6675.time.sleep(LOOP_INTERVALS)
+          time.sleep(LOOP_INTERVALS)
 
       GPIO.output(heater_pin, GPIO.HIGH)
       log('[GPIO] Heater OFF')
