@@ -1,5 +1,6 @@
 import RPi.GPIO as GPIO
 import time
+from threading import Event
 import socketio
 import eventlet
 from eventlet.green import threading
@@ -15,6 +16,16 @@ heater_pin = 11
 stirrer_pin = 13
 solenoid_pin = 15
 
+# RBG Pins
+red_pin = 29
+green_pin = 31
+blue_pin = 33
+
+# Button Pins
+button1_pin = 38
+button2_pin = 40
+abort_button = 36
+
 # MAX6675 Temp sensor pins
 temp_cs = 22
 temp_sck = 18
@@ -27,8 +38,10 @@ HEAT_THRESHOLD_2 = 70
 # Timer Variables
 LOOP_INTERVALS = 2
 SOLENOID_TIMER = 1 # Interval between solenoid on->off
-STAGE_1_TIMER = 6 # Run while heater, stirrer, etc. are on and sensor is at 100+C
-STAGE_1_PAUSE = 5
+STAGE_1_TIMER = 30 # Run stirrer this long before turning on heating element
+STAGE_1_RUNTIME = 60 # Runtime while 100deg
+STAGE_1_PAUSE = 5 # Pause to cool down
+STAGE_2_TIMER = 5 # isolated blend timer for stage 2
 
 #------------------------END OF CONFIG VARIABLES--------------
 
@@ -36,6 +49,17 @@ STAGE_1_PAUSE = 5
 GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(False)
 
+
+GPIO.setup(red_pin, GPIO.OUT)
+GPIO.setup(green_pin, GPIO.OUT)
+GPIO.setup(blue_pin, GPIO.OUT)
+GPIO.setup(heater_pin, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(stirrer_pin, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(solenoid_pin, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(button1_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(button2_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(abort_button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+max6675.set_pin(temp_cs, temp_sck, temp_so, 1)
 
 # Create a socket.io server instance
 sio = socketio.Server(cors_allowed_origins='*')
@@ -45,7 +69,29 @@ app = Flask(__name__)
 app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
 
 lock = False
+should_abort = Event()
 temp_value = 34
+
+
+def lightsOff():
+  GPIO.output(red_pin,GPIO.HIGH)
+  GPIO.output(green_pin,GPIO.HIGH)
+  GPIO.output(blue_pin,GPIO.HIGH)
+
+def redLight():
+  GPIO.output(red_pin,GPIO.LOW)
+  GPIO.output(green_pin,GPIO.HIGH)
+  GPIO.output(blue_pin,GPIO.HIGH)
+
+def greenLight():
+  GPIO.output(red_pin,GPIO.HIGH)
+  GPIO.output(green_pin,GPIO.LOW)
+  GPIO.output(blue_pin,GPIO.HIGH)
+
+def blueLight():
+  GPIO.output(red_pin,GPIO.HIGH)
+  GPIO.output(green_pin,GPIO.HIGH)
+  GPIO.output(blue_pin,GPIO.LOW)
 
 def log(text):
   print(text)
@@ -58,22 +104,10 @@ def log(text):
 @sio.on('connect')
 def connect(sid, environ):
   global lock
+  blueLight()
   log('[SERV] Connected: ${0}'.format(sid))
   if not lock:
     lock = True
-    log('[GPIO] GPIO Setting up...')
-
-    try:
-      GPIO.setup(heater_pin, GPIO.OUT, initial=GPIO.HIGH)
-      GPIO.setup(stirrer_pin, GPIO.OUT, initial=GPIO.HIGH)
-      GPIO.setup(solenoid_pin, GPIO.OUT, initial=GPIO.HIGH)
-
-      # max6675.set_pin(CS, SCK, SO, unit)   [unit : 0 - raw, 1 - Celsius, 2 - Fahrenheit]
-      max6675.set_pin(temp_cs, temp_sck, temp_so, 1)
-
-      log('[GPIO] GPIO Set up SUCCESS.')
-    except:
-      log('[GPIO][ERR] GPIO Set up FAILED. Please check all GPIO connections')
 
     def temperature_update():
       log('[BG] Background Task \'temperature_update\' Started.')
@@ -106,8 +140,15 @@ def disconnect(sid):
 
 @sio.on('abort')
 def abort(data):
-  log('[OP] Aborting system.. GPIO cleanup and restart')
-  time.sleep(1)
+  log('[OP] Aborting system and restart')
+  redLight()
+  global should_abort
+  should_abort.set()
+
+  time.sleep(2)
+
+  should_abort.clear()
+  blueLight()
   lock = False
   restart()
 
@@ -115,6 +156,7 @@ def restart():
   global lock
   if not lock:
     lock = True
+    blueLight()
     log('---------------------------------------')
     log('[OP] Restarting...')
     log('---------------------------------------')
@@ -133,29 +175,37 @@ def restart():
 def stage1_trigger(sid):
   global lock
   if not lock:
+    global should_abort
     lock = True
+    greenLight()
     sio.start_background_task(sio.emit('stage1_start'))
     log('---------------------------------------')
     log('[STAGE 1 Stage 1 Starting...')
-    log('[GPIO] Stirrer ON')
+    log('[GPIO] Stirrer ON for {0} seconds...'.format(STAGE_1_TIMER))
     GPIO.output(stirrer_pin, GPIO.LOW)
+
+    should_abort.wait(STAGE_1_TIMER)
+
     log('[GPIO] Heater ON')
     GPIO.output(heater_pin, GPIO.LOW)
 
     log('[STAGE 1] Waiting for temperature to reach Stage 1 threshold ({0}deg Celcius)'.format(HEAT_THRESHOLD_1))
     # Monitor temperature
-    while True:
+    while not should_abort.is_set():
       global temp_value
       temp_value = max6675.read_temp(temp_cs)
       # sio.start_background_task(sio.emit('temp', temp_value))
       if temp_value >= HEAT_THRESHOLD_1:
           log("[STAGE 1] Temperature reached Stage 1 threshold.")
-          log("[STAGE 1] Continuing for another {0} seconds...".format(STAGE_1_TIMER))
-          time.sleep(STAGE_1_TIMER) # wait for 1 minute
+          log("[STAGE 1] Continuing for another {0} seconds...".format(STAGE_1_RUNTIME))
+          should_abort.wait(STAGE_1_RUNTIME) # wait for 1 minute
           break
       else:
           # max6675.time.sleep(LOOP_INTERVALS)
-          time.sleep(2)
+          should_abort.wait(LOOP_INTERVALS)
+
+    if should_abort.is_set():
+      return
 
     log('[STAGE 1] Heating and blending complete.')
   
@@ -165,82 +215,92 @@ def stage1_trigger(sid):
     GPIO.output(heater_pin, GPIO.HIGH)
 
     log('[STAGE 1] Cooling down...')
-    time.sleep(STAGE_1_PAUSE)
-    log('[PROMPT] Continue? (Has it cooled sufficiently?)')
+    should_abort.wait(STAGE_1_PAUSE)
+
+    blueLight()
     lock = False
-    sio.emit('stage1_prompt_cooling')
-
+    sio.start_background_task(sio.emit('ready'))
   else:
     log('[ERR] Another operation is in progress.')
 
-@sio.on('stage1_response_cooling')
-def stage1_response_cooling(sid, answer):
-  global lock
-  if not lock:
-    lock = True
-    if answer is True:
-      sio.start_background_task(sio.emit('stage1_start'))
-      log('[STAGE 1] Cooling down...')
-      time.sleep(STAGE_1_PAUSE)
+# @sio.on('stage1_response_cooling')
+# def stage1_response_cooling(sid, answer):
+#   global lock
+#   if not lock:
+#     lock = True
+#     if answer is True:
+#       sio.start_background_task(sio.emit('stage1_start'))
+#       log('[STAGE 1] Cooling down...')
+#       should_abort.wait(STAGE_1_PAUSE)
 
-      log('[PROMPT] Continue? (Has it cooled sufficiently?)')
-      lock = False
-      sio.emit('stage1_prompt_cooling')
-    else:
-      log('[STAGE 1] Stage 1 Completed. Proceed to Stage 2?')
-      lock = False
-      sio.emit('stage2_prompt_trigger')
+#       log('[PROMPT] Continue? (Has it cooled sufficiently?)')
+#       lock = False
+#       sio.emit('stage1_prompt_cooling')
+#     else:
+#       log('[STAGE 1] Stage 1 Completed. Proceed to Stage 2?')
+#       lock = False
+#       sio.emit('stage2_prompt_trigger')
 
-  else:
-    log('[ERR] Another operation is in progress.')
+#   else:
+#     log('[ERR] Another operation is in progress.')
        
-@sio.on('stage2_response_trigger')
-def stage2_response_trigger(sid, answer):
+@sio.on('stage2_trigger')
+def stage2_trigger():
   global lock
   if not lock:
+    global should_abort
     lock = True
-    if answer is True:
-      sio.start_background_task(sio.emit('stage2_start'))
-      log('---------------------------------------')
-      log('[STAGE 2] Stage 2 Starting...')
-      log('[GPIO] Stirrer ON')
-      GPIO.output(stirrer_pin, GPIO.LOW)
-      log('[GPIO] Heater ON')
-      GPIO.output(heater_pin, GPIO.LOW)
+    greenLight()
+    sio.start_background_task(sio.emit('stage2_start'))
+    log('---------------------------------------')
+    log('[STAGE 2] Stage 2 Starting...')
 
-      log('[GPIO] Solenoid open for {0} seconds'.format(SOLENOID_TIMER))
-      GPIO.output(solenoid_pin, GPIO.LOW)
-      time.sleep(SOLENOID_TIMER)
-      GPIO.output(solenoid_pin, GPIO.HIGH)
+    log('[GPIO] Solenoid open for {0} seconds.'.format(SOLENOID_TIMER))
+    GPIO.output(solenoid_pin, GPIO.LOW)
+    should_abort.wait(SOLENOID_TIMER)
+    GPIO.output(solenoid_pin, GPIO.HIGH)
 
-      log('[STAGE 2] Waiting for temperature to reach Stage 2 threshold ({0}deg Celcius)'.format(HEAT_THRESHOLD_2))
+    log('[GPIO] Stirrer ON for {0} seconds...'.format(STAGE_2_TIMER))
+    GPIO.output(stirrer_pin, GPIO.LOW)
 
-      while True:
-        global temp_value
-        # temp_value = max6675.read_temp(temp_cs)
-        # sio.start_background_task(sio.emit('temp', temp_value))
+    log('[GPIO] Heater ON')
+    GPIO.output(heater_pin, GPIO.LOW)
 
-        if temp_value >= HEAT_THRESHOLD_2:
-          log("[STAGE 2] Temperature reached Stage 2 threshold.")
-          break
-        else:
-          time.sleep(LOOP_INTERVALS)
+    log('[STAGE 2] Waiting for temperature to reach Stage 2 threshold ({0}deg Celcius)'.format(HEAT_THRESHOLD_2))
 
-      GPIO.output(heater_pin, GPIO.HIGH)
-      log('[GPIO] Heater OFF')
-      GPIO.output(stirrer_pin, GPIO.HIGH)
-      log('[GPIO] Stirrer OFF')
+    while not should_abort.is_set():
+      global temp_value
+      # temp_value = max6675.read_temp(temp_cs)
+      # sio.start_background_task(sio.emit('temp', temp_value))
 
-      log('[STAGE 2] Process complete. Cleaning up and restarting...')
-      time.sleep(2)
-      lock = False
-      restart()
-    else:
-      lock = False
-      restart()
+      if temp_value >= HEAT_THRESHOLD_2:
+        log("[STAGE 2] Temperature reached Stage 2 threshold.")
+        break
+      else:
+        should_abort.wait(LOOP_INTERVALS)
+    
+    if should_abort.is_set():
+      return
+
+    GPIO.output(heater_pin, GPIO.HIGH)
+    log('[GPIO] Heater OFF')
+    GPIO.output(stirrer_pin, GPIO.HIGH)
+    log('[GPIO] Stirrer OFF')
+
+    log('[STAGE 2] Process complete. Cleaning up and restarting...')
+    should_abort.wait(2)
+    blueLight()
+    lock = False
+    restart()
 
   else:
     log('[ERR] Another operation is in progress.')
+
+GPIO.add_event_detect(button1_pin, GPIO.FALLING, callback=stage1_trigger, bouncetime=300)
+GPIO.add_event_detect(button2_pin, GPIO.FALLING, callback=stage2_trigger('', True), bouncetime=300)
+GPIO.add_event_detect(abort_button, GPIO.FALLING, callback=abort, bouncetime=300)
+
+blueLight()
 
 # Serve the built React app files
 @app.route('/')
