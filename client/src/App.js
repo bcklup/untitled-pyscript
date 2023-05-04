@@ -117,9 +117,9 @@ function App() {
   const handleStartStage2 = useCallback(
     (answer) => () => {
       if (answer) {
-        socket.emit("stage2_response_trigger", true);
+        socket.emit("stage2_response_trigger");
       } else {
-        socket.emit("stage2_response_trigger", false);
+        socket.emit("stage2_response_trigger");
       }
     },
     [socket]
@@ -135,8 +135,11 @@ function App() {
   }, [handleClearLogs]);
 
   return (
-    <div className="flex h-auto min-h-screen flex-1 flex-col items-center justify-center bg-zinc-500">
-      <div className="flex flex-col bg-white shadow-lg h-full w-11/12 md:w-[768px]">
+    <div
+      className="flex min-h-screen flex-1 flex-col items-center justify-center bg-zinc-500"
+      style={{ minHeight: "100vh" }}
+    >
+      <div className="flex h-full flex-1 flex-col bg-white shadow-lg w-11/12 md:w-[768px]">
         <div className="flex flex-row w-full p-3 bg-slate-700 items-center justify-between">
           <p className="font-light text-white">
             Connection:{" "}
@@ -205,7 +208,7 @@ function App() {
                 </button>
                 <button
                   className="font-bold text-white bg-green-400 px-6 py-2 rounded-sm"
-                  onClick={handleStartStage2(true)}
+                  onClick={handleStartStage2}
                 >
                   Stage 2
                 </button>
@@ -237,13 +240,13 @@ function App() {
               <div className="flex flex-row space-x-4">
                 <button
                   className="font-bold text-white bg-green-400 px-5 py-1 rounded-sm"
-                  onClick={handleStartStage2(true)}
+                  onClick={handleStartStage2}
                 >
                   Yes
                 </button>
                 <button
                   className="font-bold text-white bg-red-400 px-6 py-2 rounded-sm"
-                  onClick={handleStartStage2(false)}
+                  onClick={handleStartStage2}
                 >
                   No
                 </button>
