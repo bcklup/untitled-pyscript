@@ -50,9 +50,9 @@ GPIO.setmode(GPIO.BOARD)
 GPIO.setwarnings(False)
 
 
-GPIO.setup(red_pin, GPIO.OUT)
-GPIO.setup(green_pin, GPIO.OUT)
-GPIO.setup(blue_pin, GPIO.OUT)
+GPIO.setup(red_pin, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(green_pin, GPIO.OUT, initial=GPIO.HIGH)
+GPIO.setup(blue_pin, GPIO.OUT, initial=GPIO.HIGH)
 GPIO.setup(heater_pin, GPIO.OUT, initial=GPIO.HIGH)
 GPIO.setup(stirrer_pin, GPIO.OUT, initial=GPIO.HIGH)
 GPIO.setup(solenoid_pin, GPIO.OUT, initial=GPIO.HIGH)
