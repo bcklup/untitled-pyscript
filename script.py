@@ -298,9 +298,20 @@ def stage2_trigger():
   else:
     log('[ERR] Another operation is in progress.')
 
-GPIO.add_event_detect(button1_pin, GPIO.RISING, callback=stage1_trigger, bouncetime=300)
-GPIO.add_event_detect(button2_pin, GPIO.RISING, callback=stage2_trigger, bouncetime=300)
-GPIO.add_event_detect(abort_button, GPIO.RISING, callback=abort, bouncetime=300)
+def btn1_event(ch):
+  stage1_trigger()
+
+def btn2_event(ch):
+  stage2_trigger()
+
+def btn1_event(ch):
+  abort('')
+
+
+
+GPIO.add_event_detect(button1_pin, GPIO.RISING, callback=btn1_event, bouncetime=300)
+GPIO.add_event_detect(button2_pin, GPIO.RISING, callback=btn2_event, bouncetime=300)
+GPIO.add_event_detect(abort_button, GPIO.RISING, callback=abort_btn_event, bouncetime=300)
 
 blueLight()
 
