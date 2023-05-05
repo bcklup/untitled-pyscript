@@ -138,7 +138,7 @@ def connect(sid, environ):
 @sio.on('disconnect')
 def disconnect(sid):
   print('[SERV] Disconnected:', sid)
-  GPIO.cleanup()
+  #GPIO.cleanup()
 
 @sio.on('abort')
 def abort(data):
@@ -157,7 +157,6 @@ def abort(data):
 def restart():
   global lock
   if not lock:
-    lock = True
     blueLight()
     log('---------------------------------------')
     log('[OP] Restarting...')
@@ -343,3 +342,5 @@ if __name__ == '__main__':
     # wsgi_server_greenlet = eventlet.spawn(temperature_update)
 
     eventlet.wsgi.server(eventlet.listen(('', 5000)), app)
+
+GPIO.cleanup()
