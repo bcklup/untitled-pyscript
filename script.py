@@ -115,7 +115,7 @@ def connect(sid, environ):
         global temp_value
         new_temp_value = max6675.read_temp(temp_cs)
 
-        if new_temp_value < 500 and new_temp_value > 10
+        if new_temp_value < 500 and new_temp_value > 10:
           temp_value = new_temp_value
 
         # Emit the temperature value to the connected client
