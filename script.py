@@ -304,7 +304,7 @@ def btn1_event(ch):
 def btn2_event(ch):
   stage2_trigger()
 
-def btn1_event(ch):
+def abort_btn_event(ch):
   abort('')
 
 
