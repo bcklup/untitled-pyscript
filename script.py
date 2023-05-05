@@ -56,9 +56,9 @@ GPIO.setup(blue_pin, GPIO.OUT, initial=GPIO.HIGH)
 GPIO.setup(heater_pin, GPIO.OUT, initial=GPIO.HIGH)
 GPIO.setup(stirrer_pin, GPIO.OUT, initial=GPIO.HIGH)
 GPIO.setup(solenoid_pin, GPIO.OUT, initial=GPIO.HIGH)
-GPIO.setup(button1_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(button2_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-GPIO.setup(abort_button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(button1_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(button2_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(abort_button, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 max6675.set_pin(temp_cs, temp_sck, temp_so, 1)
 
 # Create a socket.io server instance
@@ -298,9 +298,9 @@ def stage2_trigger():
   else:
     log('[ERR] Another operation is in progress.')
 
-GPIO.add_event_detect(button1_pin, GPIO.FALLING, callback=stage1_trigger, bouncetime=300)
-GPIO.add_event_detect(button2_pin, GPIO.FALLING, callback=stage2_trigger, bouncetime=300)
-GPIO.add_event_detect(abort_button, GPIO.FALLING, callback=abort, bouncetime=300)
+GPIO.add_event_detect(button1_pin, GPIO.RISING, callback=stage1_trigger, bouncetime=300)
+GPIO.add_event_detect(button2_pin, GPIO.RISING, callback=stage2_trigger, bouncetime=300)
+GPIO.add_event_detect(abort_button, GPIO.RISING, callback=abort, bouncetime=300)
 
 blueLight()
 
