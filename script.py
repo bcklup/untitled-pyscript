@@ -89,6 +89,7 @@ def greenLight():
   GPIO.output(blue_pin,GPIO.HIGH)
 
 def blueLight():
+  GPIO.setmode(GPIO.BOARD)
   GPIO.output(red_pin,GPIO.HIGH)
   GPIO.output(green_pin,GPIO.HIGH)
   GPIO.output(blue_pin,GPIO.LOW)
@@ -104,6 +105,7 @@ def log(text):
 @sio.on('connect')
 def connect(sid, environ):
   global lock
+  GPIO.setmode(GPIO.BOARD)
   blueLight()
   log('[SERV] Connected: ${0}'.format(sid))
   if not lock:
