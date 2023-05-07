@@ -24,8 +24,8 @@ green_pin = 31
 blue_pin = 33
 
 # Button Pins
-button1_pin = 38
-button2_pin = 40
+button1_pin = 37
+button2_pin = 32
 abort_button = 36
 
 # MAX6675 Temp sensor pins
