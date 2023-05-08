@@ -31,12 +31,10 @@ def read_temp(cs_no):
     for i in range(11, -1, -1):
         GPIO.output(sck, GPIO.HIGH)
         Value = Value + (GPIO.input(so) * (2 ** i))
-        print(GPIO.input(so))
         GPIO.output(sck, GPIO.LOW)
 
     GPIO.output(sck, GPIO.HIGH)
     error_tc = GPIO.input(so)
-    print(GPIO.input(so))
     GPIO.output(sck, GPIO.LOW)
 
     for i in range(2):
