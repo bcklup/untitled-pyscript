@@ -71,6 +71,7 @@ max6675.set_pin(temp_cs, temp_sck, temp_so, 1)
 # app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
 
 lock = False
+stage = 0
 # should_abort = Event()
 temp_value = 34
 
@@ -144,6 +145,7 @@ def log(text):
 
 # @sio.on('abort')
 def abort():
+  global stage
   log('[OP] Aborting system and restart')
   redLight()
   # global should_abort
@@ -151,6 +153,7 @@ def abort():
   lock = False
   GPIO.cleanup()
   time.sleep(2)
+  stage = 0
   os.execl(sys.executable, sys.executable, *sys.argv)
   # should_abort.clear()
   # blueLight()
@@ -177,7 +180,9 @@ def restart():
 # @sio.on('stage1_trigger')
 def stage1_trigger():
   global lock
+  global stage
   if not lock:
+    stage = 1
     # global should_abort
     lock = True
     greenLight()
@@ -248,7 +253,9 @@ def stage1_trigger():
 # @sio.on('stage2_trigger')
 def stage2_trigger():
   global lock
+  global stage
   if not lock:
+    stage = 2
     lock = True
     greenLight()
     # sio.start_background_task(sio.emit('stage2_start'))
@@ -297,7 +304,14 @@ def btn1_event():
   stage1_trigger()
 
 def btn2_event():
-  stage2_trigger()
+  if lock is True: return
+
+  if stage == 0:
+    stage1_trigger()
+  if stage == 1:
+    stage2_trigger()
+  if stage == 2:
+    abort()
 
 def abort_btn_event():
   abort('')
@@ -339,15 +353,15 @@ blueLight()
 
 # while True: pass
 while True:
-  btn1 = GPIO.input(button1_pin)
+  # btn1 = GPIO.input(button1_pin)
   btn2 = GPIO.input(button2_pin)
-  btn3 = GPIO.input(abort_button)
-  print(btn1, btn2, btn3)
-  if btn3 is True:
-    abort_btn_event()
-  elif btn1 is True:
-    btn1_event()
-  elif btn2 is True:
+  # btn3 = GPIO.input(abort_button)
+  # print(btn1, btn2, btn3)
+  # if btn3 is True:
+  #   abort_btn_event()
+  # elif btn1 is True:
+  #   btn1_event()
+  if btn2 is True:
     btn2_event()
 
 
