@@ -355,6 +355,7 @@ blueLight()
 while True:
   # btn1 = GPIO.input(button1_pin)
   btn2 = GPIO.input(button2_pin)
+  print(btn2)
   # btn3 = GPIO.input(abort_button)
   # print(btn1, btn2, btn3)
   # if btn3 is True:
