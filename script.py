@@ -293,20 +293,40 @@ def stage2_trigger():
   else:
     log('[ERR] Another operation is in progress.')
 
-def btn1_event(ch):
+def btn1_event():
   stage1_trigger()
 
-def btn2_event(ch):
+def btn2_event():
   stage2_trigger()
 
-def abort_btn_event(ch):
+def abort_btn_event():
   abort('')
 
+def checkBtn1():
+  while True:
+    input_state = GPIO.input(button1_pin)
+    if input_state == True:
+      btn1_event()
 
+def checkBtn2():
+  while True:
+    input_state = GPIO.input(button2_pin)
+    if input_state == True:
+      btn2_event()
 
-GPIO.add_event_detect(button1_pin, GPIO.RISING, callback=btn1_event, bouncetime=300)
-GPIO.add_event_detect(button2_pin, GPIO.RISING, callback=btn2_event, bouncetime=300)
-GPIO.add_event_detect(abort_button, GPIO.RISING, callback=abort_btn_event, bouncetime=300)
+def checkBtn3():
+  while True:
+    input_state = GPIO.input(abort_button)
+    if input_state == True:
+      abort_btn_event()
+
+sio.start_background_task(checkBtn1)
+sio.start_background_task(checkBtn2)
+sio.start_background_task(checkBtn3)
+
+# GPIO.add_event_detect(button1_pin, GPIO.RISING, callback=btn1_event, bouncetime=300)
+# GPIO.add_event_detect(button2_pin, GPIO.RISING, callback=btn2_event, bouncetime=300)
+# GPIO.add_event_detect(abort_button, GPIO.RISING, callback=abort_btn_event, bouncetime=300)
 
 blueLight()
 
