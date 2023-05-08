@@ -2,14 +2,14 @@ import RPi.GPIO as GPIO
 import time
 import os
 import sys
-# from threading import Event
-# import socketio
-# import eventlet
-# from eventlet.green import threading
+from threading import Event
+import socketio
+import eventlet
+from eventlet.green import threading
 
 import datetime
 import max6675
-# from flask import Flask, send_from_directory
+from flask import Flask, send_from_directory
 # from flask_cors import CORS
 
 #-----------------------CONFIG VARIABLES---------------------
@@ -64,11 +64,11 @@ GPIO.setup(abort_button, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 max6675.set_pin(temp_cs, temp_sck, temp_so, 1)
 
 # Create a socket.io server instance
-# sio = socketio.Server(cors_allowed_origins='*')
+sio = socketio.Server(cors_allowed_origins='*')
 
-# app = Flask(__name__)
+app = Flask(__name__)
 # CORS(app)
-# app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
+app.wsgi_app = socketio.WSGIApp(sio, app.wsgi_app)
 
 lock = False
 # should_abort = Event()
@@ -98,52 +98,52 @@ def blueLight():
 
 def log(text):
   print(text)
-  # try:
-  #   sio.start_background_task(sio.emit('log', '[{0}]{1}'.format(datetime.datetime.now().strftime("%H:%M:%S %p"), text)))
-  # except:
-  #     print('{1}'.format(text))
+  try:
+    sio.start_background_task(sio.emit('log', '[{0}]{1}'.format(datetime.datetime.now().strftime("%H:%M:%S %p"), text)))
+  except:
+      print('{1}'.format(text))
 
 # Define event handlers for socket.io events
-# @sio.on('connect')
-# def connect(sid, environ):
-#   global lock
-#   GPIO.setmode(GPIO.BOARD)
-#   blueLight()
-#   log('[SERV] Connected: ${0}'.format(sid))
-#   if not lock:
-#     lock = True
+@sio.on('connect')
+def connect(sid, environ):
+  global lock
+  GPIO.setmode(GPIO.BOARD)
+  blueLight()
+  log('[SERV] Connected: ${0}'.format(sid))
+  if not lock:
+    lock = True
 
-#     def temperature_update():
-#       log('[BG] Background Task \'temperature_update\' Started.')
-#       while True:
-#         global temp_value
-#         new_temp_value = max6675.read_temp(temp_cs)
+    def temperature_update():
+      log('[BG] Background Task \'temperature_update\' Started.')
+      while True:
+        global temp_value
+        new_temp_value = max6675.read_temp(temp_cs)
 
-#         if new_temp_value < 500 and new_temp_value > 10:
-#           temp_value = new_temp_value
+        if new_temp_value < 500 and new_temp_value > 10:
+          temp_value = new_temp_value
 
-#         # Emit the temperature value to the connected client
-#         sio.start_background_task(sio.emit('temp', temp_value))
+        # Emit the temperature value to the connected client
+        sio.start_background_task(sio.emit('temp', temp_value))
 
-#         max6675.time.sleep(2)
+        max6675.time.sleep(2)
 
-#     sio.start_background_task(temperature_update)
-#     # eventlet.spawn(temperature_update)
+    sio.start_background_task(temperature_update)
+    # eventlet.spawn(temperature_update)
 
-#     log('[OP] System is ready. Start Stage 1 or 2?')
-#     lock = False
-#     sio.start_background_task(sio.emit('ready'))
-#   else:
-#       log('[ERR] Another operation is in progress.')
+    log('[OP] System is ready. Start Stage 1 or 2?')
+    lock = False
+    sio.start_background_task(sio.emit('ready'))
+  else:
+      log('[ERR] Another operation is in progress.')
 
 
-# @sio.on('disconnect')
-# def disconnect(sid):
-#   print('[SERV] Disconnected:', sid)
-#   #GPIO.cleanup()
+@sio.on('disconnect')
+def disconnect(sid):
+  print('[SERV] Disconnected:', sid)
+  #GPIO.cleanup()
 
-# @sio.on('abort')
-def abort():
+@sio.on('abort')
+def abort(data):
   log('[OP] Aborting system and restart')
   redLight()
   # global should_abort
@@ -174,14 +174,14 @@ def restart():
     log('[ERR] Another operation is in progress.')
 
 
-# @sio.on('stage1_trigger')
-def stage1_trigger():
+@sio.on('stage1_trigger')
+def stage1_trigger(sid):
   global lock
   if not lock:
     # global should_abort
     lock = True
     greenLight()
-    # sio.start_background_task(sio.emit('stage1_start'))
+    sio.start_background_task(sio.emit('stage1_start'))
     log('---------------------------------------')
     log('[STAGE 1 Stage 1 Starting...')
     log('[GPIO] Stirrer ON for {0} seconds...'.format(STAGE_1_TIMER))
@@ -220,7 +220,7 @@ def stage1_trigger():
 
     blueLight()
     lock = False
-    # sio.start_background_task(sio.emit('ready'))
+    sio.start_background_task(sio.emit('ready'))
   else:
     log('[ERR] Another operation is in progress.')
 
@@ -245,13 +245,13 @@ def stage1_trigger():
 #   else:
 #     log('[ERR] Another operation is in progress.')
        
-# @sio.on('stage2_trigger')
+@sio.on('stage2_trigger')
 def stage2_trigger():
   global lock
   if not lock:
     lock = True
     greenLight()
-    # sio.start_background_task(sio.emit('stage2_start'))
+    sio.start_background_task(sio.emit('stage2_start'))
     log('---------------------------------------')
     log('[STAGE 2] Stage 2 Starting...')
 
@@ -308,35 +308,33 @@ GPIO.add_event_detect(abort_button, GPIO.RISING, callback=abort_btn_event, bounc
 
 blueLight()
 
-# # Serve the built React app files
-# @app.route('/')
-# def serve_client():
-#   return send_from_directory('client/build', 'index.html')
+# Serve the built React app files
+@app.route('/')
+def serve_client():
+  return send_from_directory('client/build', 'index.html')
 
-# @app.route('/favicon.ico')
-# def serve_icon():
-#   return send_from_directory('client/build', 'favicon.ico')
+@app.route('/favicon.ico')
+def serve_icon():
+  return send_from_directory('client/build', 'favicon.ico')
 
-# @app.route('/static/<path:path>')
-# def serve_static(path):
-#   return send_from_directory('client/build/static', path)
+@app.route('/static/<path:path>')
+def serve_static(path):
+  return send_from_directory('client/build/static', path)
 
-# @app.route('/static/js/<path:path>')
-# def serve_js(path):
-#   return send_from_directory('client/build/static/js', path)
+@app.route('/static/js/<path:path>')
+def serve_js(path):
+  return send_from_directory('client/build/static/js', path)
 
-# @app.route('/static/css/<path:path>')
-# def serve_css(path):
-#   return send_from_directory('client/build/static/css', path)
+@app.route('/static/css/<path:path>')
+def serve_css(path):
+  return send_from_directory('client/build/static/css', path)
 
 
 # Start the server
-# if __name__ == '__main__':
+if __name__ == '__main__':
     # eventlet.spawn(temperature_update)
     # wsgi_server_greenlet = eventlet.spawn(temperature_update)
 
-    # eventlet.wsgi.server(eventlet.listen(('', 5000)), app)
-
-while True: pass
+    eventlet.wsgi.server(eventlet.listen(('', 5000)), app)
 
 GPIO.cleanup()
