@@ -196,6 +196,8 @@ def stage1_trigger():
 
     # should_abort.wait(STAGE_1_TIMER)
     time.sleep(STAGE_1_TIMER)
+    GPIO.output(stirrer_pin, GPIO.HIGH)
+
 
     log('[GPIO] Heater ON')
     GPIO.output(heater_pin, GPIO.LOW)
@@ -271,6 +273,10 @@ def stage2_trigger():
 
     log('[GPIO] Stirrer ON for {0} seconds...'.format(STAGE_2_TIMER))
     GPIO.output(stirrer_pin, GPIO.LOW)
+    time.sleep(STAGE_2_TIMER)
+    GPIO.output(stirrer_pin, GPIO.HIGH)
+
+    
 
     log('[GPIO] Heater ON')
     GPIO.output(heater_pin, GPIO.LOW)
