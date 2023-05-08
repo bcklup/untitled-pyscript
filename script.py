@@ -337,6 +337,18 @@ blueLight()
 
     # eventlet.wsgi.server(eventlet.listen(('', 5000)), app)
 
-while True: pass
+# while True: pass
+while True:
+  btn1 = GPIO.input(button1_pin)
+  btn2 = GPIO.input(button2_pin)
+  btn3 = GPIO.input(abort_button)
+  print(btn1, btn2, btn3)
+  if btn3 is True:
+    abort_btn_event()
+  elif btn1 is True:
+    btn1_event()
+  elif btn2 is True:
+    btn2_event()
+
 
 GPIO.cleanup()
