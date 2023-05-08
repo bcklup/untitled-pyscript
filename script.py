@@ -72,6 +72,8 @@ max6675.set_pin(temp_cs, temp_sck, temp_so, 1)
 
 lock = False
 stage = 0
+button_pressed_time = None
+long_press_duration = 2  # in seconds
 # should_abort = Event()
 # tetemp_value = 34
 
@@ -300,10 +302,10 @@ def stage2_trigger():
   else:
     log('[ERR] Another operation is in progress.')
 
-def btn1_event():
-  stage1_trigger()
-
 def btn2_event():
+  stage2_trigger()
+
+def btn1_event():
   global lock
   global stage
   print(f'[DEBUG] Lock is {0}, Stage: {1}'.format(lock, stage))
@@ -354,19 +356,24 @@ blueLight()
 
     # eventlet.wsgi.server(eventlet.listen(('', 5000)), app)
 
-# while True: pass
 while True:
-  # btn1 = GPIO.input(button1_pin)
-  btn2 = GPIO.input(button2_pin)
-  # print(btn2)
-  # btn3 = GPIO.input(abort_button)
-  # print(btn1, btn2, btn3)
-  # if btn3 is True:
-  #   abort_btn_event()
-  # elif btn1 is True:
-  #   btn1_event()
-  if btn2 == 1:
-    btn2_event()
+    input_state = GPIO.input(button2_pin)
+    if input_state == False:
+        if button_pressed_time is None:
+            # button is pressed for the first time
+            button_pressed_time = time.time()
+    else:
+        if button_pressed_time is not None:
+            # button is released after a press
+            press_duration = time.time() - button_pressed_time
+            if press_duration >= long_press_duration:
+              # button was pressed for a long time
+              btn2_event()
+            else:
+              # button was pressed for a short time
+              btn1_event()
+            button_pressed_time = None
 
+    time.sleep(0.1)  # debounce the button
 
 GPIO.cleanup()
