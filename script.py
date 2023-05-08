@@ -34,14 +34,14 @@ temp_sck = 18
 temp_so = 16
 
 # Condition Variables
-HEAT_THRESHOLD_1 = 30
-HEAT_THRESHOLD_2 = 30
+HEAT_THRESHOLD_1 = 100
+HEAT_THRESHOLD_2 = 70
 
 # Timer Variables
 LOOP_INTERVALS = 2
 SOLENOID_TIMER = 1 # Interval between solenoid on->off
 STAGE_1_TIMER = 30 # Run stirrer this long before turning on heating element
-STAGE_1_RUNTIME = 10 # Runtime while 100deg
+STAGE_1_RUNTIME = 10*60 # Runtime while 100deg
 STAGE_1_PAUSE = 5 # Pause to cool down
 STAGE_2_TIMER = 5 # isolated blend timer for stage 2
 
