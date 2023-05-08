@@ -304,6 +304,9 @@ def btn1_event():
   stage1_trigger()
 
 def btn2_event():
+  global lock
+  global stage
+  print(lock, stage)
   if lock is True: return
 
   if stage == 0:
@@ -362,7 +365,7 @@ while True:
   #   abort_btn_event()
   # elif btn1 is True:
   #   btn1_event()
-  if btn2 is True:
+  if btn2 == 1:
     btn2_event()
 
 
