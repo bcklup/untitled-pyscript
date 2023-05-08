@@ -73,7 +73,7 @@ max6675.set_pin(temp_cs, temp_sck, temp_so, 1)
 lock = False
 stage = 0
 # should_abort = Event()
-temp_value = 34
+# tetemp_value = 34
 
 
 def lightsOff():
@@ -201,8 +201,8 @@ def stage1_trigger():
     log('[STAGE 1] Waiting for temperature to reach Stage 1 threshold ({0}deg Celcius)'.format(HEAT_THRESHOLD_1))
     # Monitor temperature
     while True:
-      global temp_value
       temp_value = max6675.read_temp(temp_cs)
+      print('[TEMP] {0}deg celcius'.format(temp_value))
       # sio.start_background_task(sio.emit('temp', temp_value))
       if temp_value >= HEAT_THRESHOLD_1:
           log("[STAGE 1] Temperature reached Stage 1 threshold.")
@@ -276,8 +276,8 @@ def stage2_trigger():
     log('[STAGE 2] Waiting for temperature to reach Stage 2 threshold ({0}deg Celcius)'.format(HEAT_THRESHOLD_2))
 
     while True:
-      global temp_value
-      # temp_value = max6675.read_temp(temp_cs)
+      temp_value = max6675.read_temp(temp_cs)
+      print('[TEMP] {0}deg celcius'.format(temp_value))
       # sio.start_background_task(sio.emit('temp', temp_value))
 
       if temp_value >= HEAT_THRESHOLD_2:
@@ -306,7 +306,7 @@ def btn1_event():
 def btn2_event():
   global lock
   global stage
-  print(lock, stage)
+  print(f'[DEBUG] Lock is {0}, Stage: {1}'.format(lock, stage))
   if lock is True: return
 
   if stage == 0:
@@ -358,7 +358,7 @@ blueLight()
 while True:
   # btn1 = GPIO.input(button1_pin)
   btn2 = GPIO.input(button2_pin)
-  print(btn2)
+  # print(btn2)
   # btn3 = GPIO.input(abort_button)
   # print(btn1, btn2, btn3)
   # if btn3 is True:
