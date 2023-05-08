@@ -58,9 +58,9 @@ GPIO.setup(blue_pin, GPIO.OUT, initial=GPIO.HIGH)
 GPIO.setup(heater_pin, GPIO.OUT, initial=GPIO.HIGH)
 GPIO.setup(stirrer_pin, GPIO.OUT, initial=GPIO.HIGH)
 GPIO.setup(solenoid_pin, GPIO.OUT, initial=GPIO.HIGH)
-GPIO.setup(button1_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(button2_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.setup(abort_button, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.setup(button1_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(button2_pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.setup(abort_button, GPIO.IN, pull_up_down=GPIO.PUD_UP)
 max6675.set_pin(temp_cs, temp_sck, temp_so, 1)
 
 # Create a socket.io server instance
@@ -169,7 +169,7 @@ def restart():
     GPIO.output(solenoid_pin, GPIO.HIGH)
     
     lock = False
-    sio.emit('restart')
+    # sio.emit('restart')
   else:
     log('[ERR] Another operation is in progress.')
 
@@ -302,9 +302,9 @@ def btn2_event(ch):
 def abort_btn_event(ch):
   abort('')
 
-GPIO.add_event_detect(button1_pin, GPIO.RISING, callback=btn1_event, bouncetime=300)
-GPIO.add_event_detect(button2_pin, GPIO.RISING, callback=btn2_event, bouncetime=300)
-GPIO.add_event_detect(abort_button, GPIO.RISING, callback=abort_btn_event, bouncetime=300)
+# GPIO.add_event_detect(button1_pin, GPIO.FALLING, callback=btn1_event, bouncetime=300)
+# GPIO.add_event_detect(button2_pin, GPIO.FALLING, callback=btn2_event, bouncetime=300)
+# GPIO.add_event_detect(abort_button, GPIO.RISING, callback=abort_btn_event, bouncetime=300)
 
 blueLight()
 
@@ -343,12 +343,12 @@ while True:
   btn2 = GPIO.input(button2_pin)
   btn3 = GPIO.input(abort_button)
   print(btn1, btn2, btn3)
-  if btn3 is True:
-    abort_btn_event()
-  elif btn1 is True:
-    btn1_event()
-  elif btn2 is True:
-    btn2_event()
+  # if btn3 is True:
+  #   abort_btn_event()
+  # elif btn1 is True:
+  #   btn1_event()
+  # elif btn2 is True:
+  #   btn2_event()
 
 
 GPIO.cleanup()
